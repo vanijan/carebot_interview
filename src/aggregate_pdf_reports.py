@@ -94,7 +94,7 @@ def get_pdf_file_names(from_: datetime, to: datetime) -> list[str]:
             continue
 
         # validate time slot
-        if not (from_ <= dt < to):
+        if not (from_ < dt <= to):
             print(f" Date {dt} not in the range")
             continue
 
