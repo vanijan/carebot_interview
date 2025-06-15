@@ -1,0 +1,10 @@
+psycopg
+psycopg[binary]
+pandas
+dotenv
+pytest
+pytest-cov
+azure-storage-blob
+reportlab
+pydicom
+pypdf
