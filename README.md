@@ -11,7 +11,7 @@ Queries jsou ve složce sql
 ### Před spuštěním
 - (virtuální prostředí)
 ```bash
-- pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 vytvořit .env file s proměnnými
 PG_HOST,
