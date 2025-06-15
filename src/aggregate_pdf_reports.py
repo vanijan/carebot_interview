@@ -1,11 +1,3 @@
-from datetime import datetime, timedelta
-from dotenv import load_dotenv
-from time import sleep
-from azure.storage.blob import BlobServiceClient
-from io import BytesIO
-from pypdf import PdfWriter
-from pathlib import Path
-
 import psycopg
 import os
 import re
@@ -13,7 +5,13 @@ import pydicom
 import logging
 import argparse
 
-
+from datetime import datetime, timedelta
+from dotenv import load_dotenv
+from time import sleep
+from azure.storage.blob import BlobServiceClient
+from io import BytesIO
+from pypdf import PdfWriter
+from pathlib import Path
 
 MAX_RETRIES = 5
 
