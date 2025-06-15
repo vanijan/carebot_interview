@@ -22,12 +22,13 @@ def get_pdf_file_names(from_: datetime, to: datetime) -> list[str]:
     Retrieve a list of PDF report file names created between `from_` and `to`.
     Filenames are constructed from DICOM metadata, stored in a DB and Azure.
     """
+    # query for retriving dcm files
     QUERY = '''SELECT dicom_report.file_name, dicom_report.container_name FROM public.dicom_report
             JOIN dicom_stow_rs ON dicom_report.dicom_stow_rs_id = dicom_stow_rs.id
             WHERE created_at > %(from)s AND created_at <= %(to)s
             ORDER BY dicom_report.id DESC
             '''
-
+    # obtain global variables
     load_dotenv()
     pg_host = os.getenv("PG_HOST")
     pg_user = os.getenv("PG_USER")
@@ -36,6 +37,7 @@ def get_pdf_file_names(from_: datetime, to: datetime) -> list[str]:
     pg_password = os.getenv("PG_PASSWORD")
     connection_string = os.getenv("AZURE_CONNECTION_STRING")
 
+    # retrieve valid dcm files, connection to database with exponential back-off
     result_dcms = []
     for i in range(MAX_RETRIES):
         try:
@@ -69,13 +71,15 @@ def get_pdf_file_names(from_: datetime, to: datetime) -> list[str]:
         series_instance_uid = None
         referenced_sop_instance_uid = None
 
+        # connect to blob storage
         try:
             blob_client = blob_service_client.get_blob_client(container, file_name)
             content = blob_client.download_blob().readall()
         except Exception:
             print(" not in storage")
             continue
-
+        
+        # read the file
         try:
             dicom_file = pydicom.dcmread(BytesIO(content))
         except Exception:
@@ -91,11 +95,12 @@ def get_pdf_file_names(from_: datetime, to: datetime) -> list[str]:
             print(" Invalid creation datetime")
             continue
 
+        # validate time slot
         if not (from_ <= dt < to):
             print(f" Date {dt} not in the range")
             continue
 
-        # Required UIDs
+        # Study UID
         study_instance_uid = dicom_file.get("StudyInstanceUID")
         if not study_instance_uid:
             print(" Missing StudyInstanceUID")
@@ -138,7 +143,7 @@ def download_pdf_from_azure(pdf_file_name: str) -> bytes:
     load_dotenv()
     connection_string = os.getenv("AZURE_CONNECTION_STRING")
     container = "pdf-reports"
-    blob = '/tmp/' + pdf_file_name
+    blob = '/tmp/' + pdf_file_name # this was needed in my case
 
     # Connect to Azure Blob Service
     blob_service_client = BlobServiceClient.from_connection_string(connection_string)
@@ -159,14 +164,18 @@ def store_pdf_on_disk(pdf: bytes) -> str:
     Store the PDF report (received as bytes) on the local file system.
     The target destination is configured via the `PDF_TARGET_DIR` environment variable.
     """
+    # if download failed in previous case, return this status instead of relevant string
     if pdf == "download_failed":
         return "download_failed"
+    
+    # variables for file handling
     load_dotenv()
     save_folder = Path(os.getenv("PDF_TARGET_DIR", "pdf_reports"))
     base_name = "report{}.pdf"
     name_template = re.compile(r"^report(\d+)\.pdf$")
     save_folder.mkdir(parents=True, exist_ok=True)
 
+    # find reportxxx.pdf with highest number
     max_num = 0
     for file in save_folder.iterdir():
         match = name_template.match(file.name)
@@ -175,6 +184,7 @@ def store_pdf_on_disk(pdf: bytes) -> str:
             if num > max_num:
                 max_num = num
 
+    # save the pdf file and return the path
     save_path = save_folder / base_name.format(max_num + 1)
     save_path.write_bytes(pdf)
 
@@ -186,16 +196,19 @@ def join_pdfs(pdf_paths: list[str]) -> None:
     Joins multiple PDF files into a single PDF file.
     The output path is configured via the `JOINED_PDF_TARGET_DIR` environment variable.
     """
+    # read global variables
     load_dotenv()
     save_folder = Path(os.getenv("JOINED_PDF_TARGET_DIR", "joined_pdfs"))
     save_file_path = save_folder / "joined_report.pdf"
     save_folder.mkdir(parents=True, exist_ok=True)
 
+    # add all relevant pdfs (download_failed are ommited)
     merger = PdfWriter()
     for path_str in pdf_paths:
         if path_str != "download_failed":
-            merger.append(Path(path_str))  # you can also pass str, but Path works too
+            merger.append(Path(path_str))
 
+    # write the joined pdf
     merger.write(str(save_file_path))
     merger.close()
 
