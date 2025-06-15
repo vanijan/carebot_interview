@@ -13,7 +13,7 @@ Queries jsou ve složce sql
 ```bash
 pip install -r requirements.txt
 ```
-vytvořit .env file s proměnnými
+- vytvořit .env file s proměnnými
 PG_HOST,
 PG_USER,
 PG_PORT,
@@ -33,7 +33,8 @@ python src/aggregate_pdf_reports.py [--date YYYY-MM-DD] [--delta DAYS]
 
 ### Testy
 Generovány celé pomocí LLM, občas potřebovaly trochu pomoct z mé strany :)
-Základní
+
+Základní spuštění
 ```bash
 pytest
 ```
@@ -46,3 +47,4 @@ Aktuální coverage je 90 %, není totiž pokrytý __name__ == __main__:
 ### Poznámky k implementaci/potenciální nedostatky
 - soubory jsem filtroval časově jak v databázi tak poté podle data pořízení snímků, aby to bylo rychlejší
 - mnoho souborů (jak pdf tak dcm) často v Azure storage nebyla, nevím jestli jsem pdf string skládal špatně, nebo skutečně chybí
+- reporty jsou ukládány jako reportxxxx.pdf, při vygenerování nových reportů nejsou staré přepsány, joined_report bude aktuálně vždycky přepsán, samozřejmě se dá přidat timestamp nebo něco...
